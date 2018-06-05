@@ -33,6 +33,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private EditText locationsearch;
     private Location myLocation;
     private LocationManager locationManager;
+    private boolean gotMyLocationOneTime;
+    private boolean isGPSEnabled;
+    private boolean isNetworkEnabled;
+
+    private static final long MIN_TIME_BW_UPDATES = 1000 + 5;
+    private static final float MIN_DISTANCE_CHANGE_FOR_UPDATES = 0.0f;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -77,6 +83,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             mMap.setMyLocationEnabled(true);
         }
         locationsearch = (EditText) findViewById(R.id.EditText_addr);
+
+        gotMyLocationOneTime = false;
+        getLocation();
     }
 
     public void onSearch(View v){
@@ -140,5 +149,25 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
 
 
+    }
+
+    public void getLocation(){
+        try {
+            locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+            isGPSEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+            if (isGPSEnabled) {
+                Log.d("GoogleMapsAdd", "GPS Enabled");
+            }
+            isNetworkEnabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+            if (isNetworkEnabled) {
+                Log.d("GoogleMapsAdd", "Network Enabled");
+            }
+            if (!isGPSEnabled && !isNetworkEnabled) {
+                Log.d("GoogleMapsAdd", "Neither is enabled");
+            } else {
+
+
+            }
+        }
     }
 }
