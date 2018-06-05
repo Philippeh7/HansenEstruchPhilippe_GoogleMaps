@@ -1,7 +1,19 @@
 package com.example.hansenestruchp0969.mapproject;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
+import android.location.Address;
+import android.location.Criteria;
+import android.location.Geocoder;
+import android.location.Location;
+import android.location.LocationManager;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
+import android.util.Log;
+import android.view.View;
+import android.widget.EditText;
+import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -10,9 +22,17 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 
+import java.io.IOException;
+import java.util.List;
+import java.util.Locale;
+
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
 
     private GoogleMap mMap;
+
+    private EditText locationsearch;
+    private Location myLocation;
+    private LocationManager locationManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,8 +59,86 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mMap = googleMap;
 
         // Add a marker in Sydney and move the camera
-        LatLng sydney = new LatLng(-34, 151);
-        mMap.addMarker(new MarkerOptions().position(sydney).title("Marker in Sydney"));
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney));
+        LatLng Durham = new LatLng(35.9940, 78.8986);
+        mMap.addMarker(new MarkerOptions().position(Durham).title("Born Here"));
+        mMap.moveCamera(CameraUpdateFactory.newLatLng(Durham));
+
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            Log.d ("GoogleMapsApp", "Failed Permission Check (FINE LOCATION)");
+            ActivityCompat.requestPermissions(this, new String[] {Manifest.permission.ACCESS_FINE_LOCATION}, 2);
+        }
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            Log.d ("GoogleMapsApp", "Failed Permission Check (COARSE LOCATION)");
+            ActivityCompat.requestPermissions(this, new String[] {Manifest.permission.ACCESS_COARSE_LOCATION}, 2);
+        }
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+                ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            Log.d ("GoogleMapsApp", "Completed Permission Check");
+            mMap.setMyLocationEnabled(true);
+        }
+        locationsearch = (EditText) findViewById(R.id.EditText_addr);
+    }
+
+    public void onSearch(View v){
+        String location = locationsearch.getText().toString();
+
+        List<Address> addressList = null;
+        List<Address> addressListZip = null;
+
+        LocationManager service = (LocationManager) getSystemService(LOCATION_SERVICE);
+        Criteria criteria = new Criteria();
+        String provider = service.getBestProvider(criteria, false);
+
+        Log.d("GoogleMapsApp", "onSearch: location =" + location);
+        Log.d("GoogleMapsApp", "onSearch: provider" + provider);
+
+        LatLng userlocation = null;
+
+        try{
+            if(locationManager != null){
+                Log.d("GoogleMapsAdd", "onSearch: Location Manger is not null");
+
+                if((myLocation = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)) != null){
+                    userlocation = new LatLng(myLocation.getLatitude(), myLocation.getLongitude());
+                    Toast.makeText(this,"UserLoc" + myLocation.getLatitude() + " " + myLocation.getLongitude(), Toast.LENGTH_SHORT);
+                }
+                else if((myLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)) != null){
+                    userlocation = new LatLng(myLocation.getLatitude(), myLocation.getLongitude());
+                    Toast.makeText(this,"UserLoc" + myLocation.getLatitude() + " " + myLocation.getLongitude(), Toast.LENGTH_SHORT);
+                }
+                else{
+                    Log.d("GoogleMapsAdd", "onSearch: myLocation is null");
+                }
+            }
+        } catch (SecurityException | IllegalArgumentException e){
+            Log.d("GoogleMapsAdd", "onSearch: Exception getLastKnownLocation");
+            Toast.makeText(this,"On Search: exception getlastknowlocation", Toast.LENGTH_SHORT);
+        }
+
+        if(!location.matches("")){
+            Log.d("GoogleMapsAdd", "onSearch: location is not null");
+            Geocoder geocoder = new Geocoder(this, Locale.US);
+
+            try{
+                //get a list of addresses based on name
+                addressList = geocoder.getFromLocationName(location, 100, userlocation.latitude -(5.0/60), userlocation.longitude - (5.0/60), userlocation.latitude + (5.0/60), userlocation.longitude +(5.0/60));
+                Log.d("GoogleMapsAdd", "onSearch: addressList is created");
+            } catch (IOException e){
+                e.printStackTrace();
+            }
+
+            if(!addressList.isEmpty()) {
+                Log.d("GoogleMapsAdd", "onSearch: addressList");
+                for(int i = 0; i < addressList.size();i++){
+                    Address address = addressList.get(i);
+                    LatLng latLng = new LatLng(address.getLatitude(), address.getLongitude());
+
+                    mMap.addMarker(new MarkerOptions().position(latLng).title(i+": "+ address.getSubThoroughfare() + address.getSubThoroughfare()));
+                    mMap.animateCamera(CameraUpdateFactory.newLatLng(latLng));
+                }
+            }
+        }
+
+
     }
 }
